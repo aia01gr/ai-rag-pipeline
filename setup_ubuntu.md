@@ -142,6 +142,16 @@ pip install spacy
 pip install scikit-learn pdf2image pytesseract openai
 ```
 
+### Εγκατασταση MCP SDK (για Claude Desktop integration)
+```bash
+pip install mcp
+```
+
+### Εναλλακτικα: ολα μαζι με requirements.txt
+```bash
+cd ~/ai && source venv/bin/activate && pip install -r requirements.txt
+```
+
 ---
 
 ## ΜΕΡΟΣ 2: Αρχεια που πρεπει να παρεις απο το υπαρχον συστημα
@@ -186,3 +196,62 @@ cd ~/ai && source venv/bin/activate && python pdf_processor.py
 ```bash
 cd ~/ai && source venv/bin/activate && python rag_pipeline.py
 ```
+
+---
+
+## ΜΕΡΟΣ 4: Ρυθμιση MCP Server για Claude Desktop
+
+Ο MCP server επιτρεπει στο Claude Desktop να ψαχνει απευθειας στη βαση γνωσεων (ChromaDB).
+
+### Δημιουργια config για Claude Desktop (Windows)
+
+Αν τρεχεις μεσω WSL:
+```bash
+mkdir -p /mnt/c/Users/$USER/AppData/Roaming/Claude
+cat > /mnt/c/Users/$USER/AppData/Roaming/Claude/claude_desktop_config.json << 'EOF'
+{
+  "mcpServers": {
+    "rag-pipeline": {
+      "command": "wsl.exe",
+      "args": ["-e", "/home/$USER/ai/venv/bin/python", "/home/$USER/ai/mcp_server.py"],
+      "cwd": "/home/$USER/ai"
+    }
+  }
+}
+EOF
+```
+
+**Σημαντικο:** Αλλαξε τα paths στο JSON ωστε να δειχνουν στο σωστο μερος (π.χ. `/home/user/ai` ή `/mnt/e/ai`).
+
+Αν τρεχεις native Linux με Claude Desktop:
+```bash
+mkdir -p ~/.config/Claude
+cat > ~/.config/Claude/claude_desktop_config.json << 'EOF'
+{
+  "mcpServers": {
+    "rag-pipeline": {
+      "command": "/home/$USER/ai/venv/bin/python",
+      "args": ["/home/$USER/ai/mcp_server.py"],
+      "cwd": "/home/$USER/ai"
+    }
+  }
+}
+EOF
+```
+
+### Δοκιμη MCP server (χωρις Claude Desktop)
+```bash
+cd ~/ai && source venv/bin/activate
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2024-11-05","clientInfo":{"name":"test","version":"0.1"}}}' | python mcp_server.py
+```
+
+### Εκκινηση
+1. Κανε restart το Claude Desktop
+2. Θα δεις ενα εικονιδιο σφυρι (hammer) στο chat — κλικ για να δεις τα tools
+3. Ρωτα κατι σχετικο με τα PDFs και θα καλεσει αυτοματα το `search_documents`
+
+### Διαθεσιμα tools
+| Tool | Τι κανει |
+|------|----------|
+| `search_documents(query, n_results)` | Σημασιολογικη αναζητηση στα PDFs |
+| `list_sources()` | Λιστα με τα διαθεσιμα εγγραφα στη βαση |
