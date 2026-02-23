@@ -1,0 +1,16 @@
+pdfplumber
+pypdf
+llama-index-core
+numpy
+requests
+python-dotenv
+chromadb
+voyageai
+anthropic
+sentence-transformers
+tqdm
+spacy
+scikit-learn
+pdf2image
+pytesseract
+openai
