@@ -16,12 +16,16 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 ```bash
 ollama serve &
+```
+```bash
 ollama pull qwen2.5:3b
 ```
 
 Για αυτοματη εκκινηση με το συστημα:
 ```bash
 sudo systemctl enable ollama
+```
+```bash
 sudo systemctl start ollama
 ```
 
@@ -42,6 +46,8 @@ EOF
 
 ```bash
 mkdir -p ~/ai/pdfs
+```
+```bash
 cp /path/to/a.pdf ~/ai/pdfs/
 ```
 
@@ -56,7 +62,13 @@ cp -r /path/to/chroma_db ~/ai/chroma_db
 
 ### Αν δεν εχεις backup — αναδημιουργια απο τα PDFs:
 ```bash
-cd ~/ai && source venv/bin/activate && python pdf_processor.py
+cd ~/ai
+```
+```bash
+source venv/bin/activate
+```
+```bash
+python pdf_processor.py
 ```
 
 ---
@@ -64,7 +76,13 @@ cd ~/ai && source venv/bin/activate && python pdf_processor.py
 ## 6. Δοκιμη RAG pipeline
 
 ```bash
-cd ~/ai && source venv/bin/activate && python rag_pipeline.py
+cd ~/ai
+```
+```bash
+source venv/bin/activate
+```
+```bash
+python rag_pipeline.py
 ```
 
 ---
@@ -72,8 +90,10 @@ cd ~/ai && source venv/bin/activate && python rag_pipeline.py
 ## 7. Δοκιμη MCP server
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2025-11-25","clientInfo":{"name":"test","version":"0.1"}}}' \
-  | ~/ai/venv/bin/python ~/ai/mcp_server.py
+source ~/ai/venv/bin/activate
+```
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2025-11-25","clientInfo":{"name":"test","version":"0.1"}}}' | python ~/ai/mcp_server.py
 ```
 
 Αν επιστρεψει JSON με `"result"` — ο server ειναι ετοιμος.
@@ -83,8 +103,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},
 ## 8. Config για Claude Desktop (μονο αν τρεχεις μεσω WSL)
 
 ```bash
-cp ~/ai/ClaudeWindows/claude_desktop_config.json \
-   "/mnt/c/Users/$USER/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
+cp ~/ai/ClaudeWindows/claude_desktop_config.json "/mnt/c/Users/$USER/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
 ```
 
 Μετα κανε restart το Claude Desktop και ελεγξε `Settings → Developer` οτι το `rag-pipeline` εμφανιζεται **running**.
