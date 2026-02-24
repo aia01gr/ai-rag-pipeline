@@ -67,6 +67,11 @@ npm install -g @anthropic-ai/claude-code
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
+### Εκκινηση Ollama
+```bash
+ollama serve &
+```
+
 ### Κατεβασμα μοντελου qwen2.5:3b για Ollama
 ```bash
 ollama pull qwen2.5:3b
@@ -92,9 +97,14 @@ python3 -m venv ~/ai/venv
 source ~/ai/venv/bin/activate
 ```
 
+### Μεταβαση στον φακελο project
+```bash
+cd ~/ai
+```
+
 ### Εγκατασταση ολων των Python packages με requirements.txt
 ```bash
-cd ~/ai && pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### Αν εμφανιστει error "THESE PACKAGES DO NOT MATCH THE HASHES" (proxy/firewall)
@@ -131,9 +141,13 @@ ANTHROPIC_API_KEY=your_anthropic_api_key_here
 EOF
 ```
 
-### Αντιγραφη PDFs (απο USB η δικτυο)
+### Δημιουργια φακελου pdfs
 ```bash
 mkdir -p ~/ai/pdfs
+```
+
+### Αντιγραφη PDFs (απο USB η δικτυο)
+```bash
 cp /path/to/usb/a.pdf ~/ai/pdfs/
 ```
 
@@ -144,12 +158,24 @@ cp -r /path/to/usb/chroma_db ~/ai/chroma_db
 
 ### Εναλλακτικα: αν δεν αντιγραψεις το chroma_db, αναδημιουργησε το
 ```bash
-cd ~/ai && source venv/bin/activate && python pdf_processor.py
+cd ~/ai
+```
+```bash
+source venv/bin/activate
+```
+```bash
+python pdf_processor.py
 ```
 
 ### Δοκιμη οτι δουλευει
 ```bash
-cd ~/ai && source venv/bin/activate && python rag_pipeline.py
+cd ~/ai
+```
+```bash
+source venv/bin/activate
+```
+```bash
+python rag_pipeline.py
 ```
 
 ---
@@ -171,9 +197,7 @@ C:\Users\user\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Cla
 ### Αντιγραφη του ετοιμου config (απο WSL)
 
 ```bash
-# Αντιγραψε το ετοιμο config αρχειο στον σωστο φακελο
-cp ~/ai/ClaudeWindows/claude_desktop_config.json \
-   "/mnt/c/Users/$USER/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
+cp ~/ai/ClaudeWindows/claude_desktop_config.json "/mnt/c/Users/$USER/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
 ```
 
 **Σημαντικο:** Αν υπαρχει ηδη `claude_desktop_config.json` με αλλες ρυθμισεις (`preferences` κλπ),
@@ -195,8 +219,10 @@ cp ~/ai/ClaudeWindows/claude_desktop_config.json \
 
 ### Δοκιμη MCP server (χωρις Claude Desktop)
 ```bash
-cd ~/ai && source venv/bin/activate
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2025-11-25","clientInfo":{"name":"test","version":"0.1"}}}' | python mcp_server.py
+source ~/ai/venv/bin/activate
+```
+```bash
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2025-11-25","clientInfo":{"name":"test","version":"0.1"}}}' | python ~/ai/mcp_server.py
 ```
 
 Αν επιστρεψει JSON με `"result"` — ο server δουλευει κανονικα.
