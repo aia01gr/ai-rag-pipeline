@@ -74,7 +74,7 @@ ollama pull qwen2.5:3b
 
 ### Δημιουργια φακελου project
 ```bash
-mkdir -p ~/ai && cd ~/ai
+mkdir -p ~/ai
 ```
 
 ### Clone του repo απο GitHub
@@ -92,64 +92,19 @@ python3 -m venv ~/ai/venv
 source ~/ai/venv/bin/activate
 ```
 
-### Εγκατασταση βασικων Python libraries - PDF processing
+### Εγκατασταση ολων των Python packages με requirements.txt
 ```bash
-pip install pdfplumber pypdf
+cd ~/ai && pip install -r requirements.txt
 ```
 
-### Εγκατασταση LlamaIndex core (SentenceSplitter)
+### Αν εμφανιστει error "THESE PACKAGES DO NOT MATCH THE HASHES" (proxy/firewall)
 ```bash
-pip install llama-index-core
+pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
 ```
 
-### Εγκατασταση embedding dependencies
+Για να μην το γραφεις καθε φορα, ρυθμισε το μονιμα:
 ```bash
-pip install numpy requests python-dotenv
-```
-
-### Εγκατασταση ChromaDB
-```bash
-pip install chromadb
-```
-
-### Εγκατασταση Voyage AI client
-```bash
-pip install voyageai
-```
-
-### Εγκατασταση Anthropic SDK
-```bash
-pip install anthropic
-```
-
-### Εγκατασταση sentence-transformers (backup embeddings)
-```bash
-pip install sentence-transformers
-```
-
-### Εγκατασταση progress bar
-```bash
-pip install tqdm
-```
-
-### Εγκατασταση spaCy (advanced chunking)
-```bash
-pip install spacy
-```
-
-### Εγκατασταση βοηθητικων libraries
-```bash
-pip install scikit-learn pdf2image pytesseract openai
-```
-
-### Εγκατασταση MCP SDK (για Claude Desktop integration)
-```bash
-pip install mcp
-```
-
-### Εναλλακτικα: ολα μαζι με requirements.txt
-```bash
-cd ~/ai && source venv/bin/activate && pip install -r requirements.txt
+pip config set global.trusted-host "pypi.org files.pythonhosted.org"
 ```
 
 ---
@@ -171,8 +126,8 @@ cd ~/ai && source venv/bin/activate && pip install -r requirements.txt
 ### Δημιουργια .env με τα API keys
 ```bash
 cat > ~/ai/.env << 'EOF'
-VOYAGE_API_KEY=pa-1VoHtRuRJN6eeF8HT7i4VEAEf8MUp25VIgNeXu0YNSg
-ANTHROPIC_API_KEY=SII69RONeza8IrwhhH58axgyuj5LP2Wa150rUOkK23vJjz1B#p2EKLvGdStUdnS2KcofybOD1Y-BEpjG_efP7Xif5OjM
+VOYAGE_API_KEY=your_voyage_api_key_here
+ANTHROPIC_API_KEY=your_anthropic_api_key_here
 EOF
 ```
 
@@ -203,52 +158,55 @@ cd ~/ai && source venv/bin/activate && python rag_pipeline.py
 
 Ο MCP server επιτρεπει στο Claude Desktop να ψαχνει απευθειας στη βαση γνωσεων (ChromaDB).
 
-### Δημιουργια config για Claude Desktop (Windows)
+### ΠΡΟΣΟΧΗ: Σωστος φακελος config για Claude Desktop (Windows Store version)
 
-Αν τρεχεις μεσω WSL:
+Το Claude Desktop (Store) ΔΕΝ διαβαζει απο το κανονικο AppData. Ο σωστος φακελος ειναι:
+
+```
+C:\Users\user\AppData\Local\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Roaming\Claude\
+```
+
+Αν το package ID διαφερει, ψαξε στο `%LocalAppData%\Packages\` φακελο που αρχιζει με `Claude_`.
+
+### Αντιγραφη του ετοιμου config (απο WSL)
+
 ```bash
-mkdir -p /mnt/c/Users/$USER/AppData/Roaming/Claude
-cat > /mnt/c/Users/$USER/AppData/Roaming/Claude/claude_desktop_config.json << 'EOF'
+# Αντιγραψε το ετοιμο config αρχειο στον σωστο φακελο
+cp ~/ai/ClaudeWindows/claude_desktop_config.json \
+   "/mnt/c/Users/$USER/AppData/Local/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/claude_desktop_config.json"
+```
+
+**Σημαντικο:** Αν υπαρχει ηδη `claude_desktop_config.json` με αλλες ρυθμισεις (`preferences` κλπ),
+ΜΗΝ τον αντικαταστησεις ολοκληρο. Ανοιξε τον και προσθεσε μονο το τμημα `"mcpServers"`.
+
+Το config πρεπει να περιεχει:
+```json
 {
   "mcpServers": {
     "rag-pipeline": {
       "command": "wsl.exe",
-      "args": ["-e", "/home/$USER/ai/venv/bin/python", "/home/$USER/ai/mcp_server.py"],
-      "cwd": "/home/$USER/ai"
+      "args": ["-e", "/mnt/e/ai/venv/bin/python", "/mnt/e/ai/mcp_server.py"]
     }
   }
 }
-EOF
 ```
 
-**Σημαντικο:** Αλλαξε τα paths στο JSON ωστε να δειχνουν στο σωστο μερος (π.χ. `/home/user/ai` ή `/mnt/e/ai`).
-
-Αν τρεχεις native Linux με Claude Desktop:
-```bash
-mkdir -p ~/.config/Claude
-cat > ~/.config/Claude/claude_desktop_config.json << 'EOF'
-{
-  "mcpServers": {
-    "rag-pipeline": {
-      "command": "/home/$USER/ai/venv/bin/python",
-      "args": ["/home/$USER/ai/mcp_server.py"],
-      "cwd": "/home/$USER/ai"
-    }
-  }
-}
-EOF
-```
+> Αλλαξε το `/mnt/e/ai` αν το project βρισκεται σε διαφορετικο μερος.
 
 ### Δοκιμη MCP server (χωρις Claude Desktop)
 ```bash
 cd ~/ai && source venv/bin/activate
-echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2024-11-05","clientInfo":{"name":"test","version":"0.1"}}}' | python mcp_server.py
+echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"capabilities":{},"protocolVersion":"2025-11-25","clientInfo":{"name":"test","version":"0.1"}}}' | python mcp_server.py
 ```
+
+Αν επιστρεψει JSON με `"result"` — ο server δουλευει κανονικα.
 
 ### Εκκινηση
 1. Κανε restart το Claude Desktop
-2. Θα δεις ενα εικονιδιο σφυρι (hammer) στο chat — κλικ για να δεις τα tools
-3. Ρωτα κατι σχετικο με τα PDFs και θα καλεσει αυτοματα το `search_documents`
+2. Πηγαινε σε `Settings → Developer` και βεβαιωσου οτι το `rag-pipeline` εμφανιζεται **μπλε** με **running**
+3. Ανοιξε **νεα συνομιλια**
+4. Κλικ στο **`+`** κατω αριστερα → επιλεξε **Connectors**
+5. Ρωτα κατι σχετικο με τα PDFs
 
 ### Διαθεσιμα tools
 | Tool | Τι κανει |
