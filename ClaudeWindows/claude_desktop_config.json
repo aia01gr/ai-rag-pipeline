@@ -1,0 +1,12 @@
+{
+  "preferences": {
+    "coworkScheduledTasksEnabled": false,
+    "sidebarMode": "chat"
+  },
+  "mcpServers": {
+    "rag-pipeline": {
+      "command": "wsl.exe",
+      "args": ["-e", "/mnt/e/ai/venv/bin/python", "/mnt/e/ai/mcp_server.py"]
+    }
+  }
+}
