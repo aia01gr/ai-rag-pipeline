@@ -6,26 +6,37 @@ Exposes vector search over PDF knowledge base as tools for Claude Desktop.
 import sys
 import os
 import logging
+from dotenv import load_dotenv
 
-# Suppress all INFO logging before any imports so that EmbeddingGenerator /
-# VectorDatabase init messages don't leak into the stdio transport.
 logging.basicConfig(level=logging.WARNING, force=True)
 
-# Ensure project root is on the path
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+_PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, _PROJECT_DIR)
+load_dotenv(dotenv_path=os.path.join(_PROJECT_DIR, ".env"))
 
 from mcp.server.fastmcp import FastMCP  # noqa: E402
-from embedding_generator import EmbeddingGenerator  # noqa: E402
-from vector_database import VectorDatabase  # noqa: E402
 
-# Re-apply after imports (their basicConfig calls may have reset the level)
+# Re-apply after FastMCP import resets logging
 logging.getLogger().setLevel(logging.WARNING)
 
-# --- initialise shared objects once at import time ---
-_embedder = EmbeddingGenerator(provider="voyage", model_name="voyage-4-large")
-_db = VectorDatabase(db_path="./chroma_db", collection_name="pdf_documents")
-
 mcp = FastMCP("rag-pipeline")
+
+# --- All heavy imports and init happen only on first tool call ---
+_embedder = None
+_db = None
+
+
+def _get_resources():
+    global _embedder, _db
+    if _embedder is None or _db is None:
+        from embedding_generator import EmbeddingGenerator
+        from vector_database import VectorDatabase
+        _embedder = EmbeddingGenerator(provider="voyage", model_name="voyage-4-large")
+        _db = VectorDatabase(
+            db_path=os.path.join(_PROJECT_DIR, "chroma_db"),
+            collection_name="pdf_documents",
+        )
+    return _embedder, _db
 
 
 @mcp.tool()
@@ -39,9 +50,10 @@ def search_documents(query: str, n_results: int = 5) -> str:
     Returns:
         Matching document chunks with source information.
     """
-    results = _db.query_with_text(
+    embedder, db = _get_resources()
+    results = db.query_with_text(
         query_text=query,
-        embedding_generator=_embedder,
+        embedding_generator=embedder,
         n_results=n_results,
     )
 
@@ -59,7 +71,7 @@ def search_documents(query: str, n_results: int = 5) -> str:
     ):
         source = meta.get("filename") or meta.get("source_file", "unknown")
         pages = meta.get("page_numbers", "")
-        similarity = 1 - dist  # cosine distance → similarity
+        similarity = 1 - dist
         parts.append(
             f"--- Result {i} (similarity {similarity:.3f}) ---\n"
             f"Source: {source}  |  Pages: {pages}\n\n"
@@ -72,7 +84,8 @@ def search_documents(query: str, n_results: int = 5) -> str:
 @mcp.tool()
 def list_sources() -> str:
     """List all documents available in the knowledge base."""
-    collection = _db.client.get_collection(_db.collection_name)
+    _, db = _get_resources()
+    collection = db.client.get_collection(db.collection_name)
     all_meta = collection.get(include=["metadatas"])
 
     sources: dict[str, int] = {}
