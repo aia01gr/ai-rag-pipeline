@@ -80,6 +80,27 @@ ls /mnt/e/ai/chroma_db/
 
 ---
 
+## Βήμα 5β — Εγκατάσταση Python packages
+
+### Κανονική εγκατάσταση:
+```bash
+cd /mnt/e/ai && source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Αν εμφανιστεί error "THESE PACKAGES DO NOT MATCH THE HASHES":
+Ο server έχει proxy/firewall που κάνει SSL inspection. Χρησιμοποίησε:
+```bash
+pip install --no-cache-dir --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
+```
+
+Για να μην το γράφεις κάθε φορά, ρύθμισέ το μόνιμα:
+```bash
+pip config set global.trusted-host "pypi.org files.pythonhosted.org"
+```
+
+---
+
 ## Βήμα 6 — Εκκίνηση Claude Desktop
 
 1. Άνοιξε το Claude Desktop
