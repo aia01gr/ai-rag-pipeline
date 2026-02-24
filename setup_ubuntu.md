@@ -72,9 +72,9 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama serve &
 ```
 
-### Κατεβασμα μοντελου qwen2.5:3b για Ollama
+### Κατεβασμα μοντελου qwen2.5:32b για Ollama
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:32b
 ```
 
 ### Δημιουργια φακελου project

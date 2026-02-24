@@ -18,7 +18,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 ollama serve &
 ```
 ```bash
-ollama pull qwen2.5:3b
+ollama pull qwen2.5:32b
 ```
 
 Για αυτοματη εκκινηση με το συστημα:

@@ -29,7 +29,7 @@ class RAGPipeline:
         collection_name: str = "pdf_documents",
         embedding_provider: str = "voyage",
         embedding_model: str = "voyage-4-large",
-        ollama_model: str = "qwen2.5:3b",
+        ollama_model: str = "qwen2.5:32b",
         ollama_url: str = "http://localhost:11434"
     ):
         # Initialize components
@@ -289,7 +289,7 @@ def main():
         vector_db_path="./chroma_db",
         embedding_provider="voyage",
         embedding_model="voyage-4-large",
-        ollama_model="qwen2.5:3b"
+        ollama_model="qwen2.5:32b"
     )
 
     # Single query example
