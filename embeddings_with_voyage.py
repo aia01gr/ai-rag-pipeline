@@ -210,7 +210,7 @@ class EmbeddingGenerator:
         Process chunks JSON file and add embeddings
 
         Args:
-            chunks_file: Path to chunks.json from pdf_processor
+            chunks_file: Path to chunks.json from chunks_with_sentencesplitter
             output_file: Path to save embedded chunks
             resume: Resume from checkpoint if True
         """

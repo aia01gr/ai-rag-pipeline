@@ -68,7 +68,7 @@ def process_pdfs():
     """Process PDFs and create chunks"""
     print_step(3, "Processing PDFs")
 
-    from pdf_processor import PDFProcessor
+    from chunks_with_sentencesplitter import PDFProcessor
 
     pdf_dir = input("Enter path to your PDF directory [./pdfs]: ").strip() or './pdfs'
 
@@ -84,7 +84,7 @@ def process_pdfs():
     print(f"Found {len(pdf_files)} PDF files")
 
     processor = PDFProcessor(
-        chunk_size=2000,
+        chunk_size=1000,
         chunk_overlap=200,
         min_chunk_size=100
     )
@@ -109,7 +109,7 @@ def generate_embeddings():
         print("⚠️  No chunks.json found. Run PDF processing first.")
         return False
 
-    from embedding_generator import EmbeddingGenerator
+    from embeddings_with_voyage import EmbeddingGenerator
 
     print("\n START **********  Voyage ******** ")
     generator = EmbeddingGenerator()
@@ -225,8 +225,8 @@ FILES CREATED:
   - ./chroma_db/                  - Vector database
 
 SCRIPTS AVAILABLE:
-  - pdf_processor.py        - Process PDFs
-  - embedding_generator.py  - Generate embeddings
+  - chunks_with_sentencesplitter.py  - Process PDFs
+  - embeddings_with_voyage.py        - Generate embeddings
   - vector_database.py      - Manage vector DB
   - rag_pipeline.py         - Complete RAG pipeline
 

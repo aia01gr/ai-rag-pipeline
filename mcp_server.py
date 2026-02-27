@@ -29,7 +29,7 @@ _db = None
 def _get_resources():
     global _embedder, _db
     if _embedder is None or _db is None:
-        from embedding_generator import EmbeddingGenerator
+        from embeddings_with_voyage import EmbeddingGenerator
         from vector_database import VectorDatabase
         _embedder = EmbeddingGenerator(provider="voyage", model_name="voyage-4-large")
         _db = VectorDatabase(

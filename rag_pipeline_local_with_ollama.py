@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from embedding_generator import EmbeddingGenerator
+from embeddings_with_voyage import EmbeddingGenerator
 from vector_database import VectorDatabase
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

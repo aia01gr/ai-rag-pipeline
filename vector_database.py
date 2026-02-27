@@ -331,7 +331,7 @@ def main():
     print(f"  Location: {stats['db_path']}")
 
     # Example query (requires embedding generator)
-    # from embedding_generator import EmbeddingGenerator
+    # from embeddings_with_voyage import EmbeddingGenerator
     # generator = EmbeddingGenerator(provider='sentence-transformers')
     # results = db.query_with_text(
     #     query_text="What is machine learning?",
