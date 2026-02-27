@@ -26,7 +26,6 @@ def check_dependencies():
         'pypdf': 'PDF fallback',
         'chromadb': 'Vector database',
         'sentence_transformers': 'Local embeddings',
-        'anthropic': 'Claude API',
         'tqdm': 'Progress bars'
     }
 
@@ -159,22 +158,12 @@ def test_rag_pipeline():
     """Test the RAG pipeline"""
     print_step(6, "Testing RAG Pipeline")
 
-    # Check for Claude API key
-    api_key = os.getenv('ANTHROPIC_API_KEY')
-    if not api_key:
-        api_key = input("Enter your Claude API key: ").strip()
-        if not api_key:
-            print("⚠️  API key required to test pipeline. Skipping.")
-            return False
-        os.environ['ANTHROPIC_API_KEY'] = api_key
-
     from rag_pipeline import RAGPipeline
 
     pipeline = RAGPipeline(
         vector_db_path="./chroma_db",
         embedding_provider="sentence-transformers",
         embedding_model="all-MiniLM-L6-v2",
-        claude_model="claude-sonnet-4-5-20250929"
     )
 
     # Test query
@@ -249,7 +238,7 @@ def main():
     """Run complete setup"""
     print_header("RAG PIPELINE SETUP")
     print("This script will guide you through setting up your RAG pipeline")
-    print("for querying 1,000+ PDFs with 500K+ pages using Claude API")
+    print("for querying 1,000+ PDFs with 500K+ pages")
 
     # Run setup steps
     if not check_dependencies():
