@@ -5,8 +5,7 @@
   },
   "mcpServers": {
     "rag-pipeline": {
-      "command": "wsl.exe",
-      "args": ["-e", "/mnt/e/ai/venv/bin/python", "/mnt/e/ai/mcp_server.py"]
+      "url": "http://156.67.28.160:8000/sse"
     }
   }
 }

@@ -1,17 +1,33 @@
-pdfplumber
-pypdf
-llama-index-core
-numpy
-requests
-python-dotenv
-chromadb
-voyageai
-anthropic
-sentence-transformers
-tqdm
-spacy
-scikit-learn
-pdf2image
-pytesseract
-openai
-mcp
+# ── PDF Processing ─────────────────────────────────────────────────────────────
+pdfplumber>=0.11.0
+pypdf>=6.0.0
+pdf2image>=1.17.0
+pytesseract>=0.3.13
+
+# ── Text Splitting ──────────────────────────────────────────────────────────────
+llama-index-core>=0.14.0
+
+# ── Embeddings ──────────────────────────────────────────────────────────────────
+voyageai>=0.3.0
+sentence-transformers>=5.0.0
+openai>=2.0.0
+
+# ── Vector Database ─────────────────────────────────────────────────────────────
+chromadb>=1.5.0
+
+# ── Claude API ──────────────────────────────────────────────────────────────────
+anthropic>=0.83.0
+
+# ── MCP Server (SSE transport) ──────────────────────────────────────────────────
+mcp>=1.26.0
+uvicorn>=0.41.0
+
+# ── NLP / ML Utilities ──────────────────────────────────────────────────────────
+spacy>=3.8.0
+scikit-learn>=1.8.0
+numpy>=2.0.0
+
+# ── General Utilities ────────────────────────────────────────────────────────────
+requests>=2.32.0
+python-dotenv>=1.0.0
+tqdm>=4.66.0

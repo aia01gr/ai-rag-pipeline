@@ -101,6 +101,14 @@ class VectorDatabase:
 
         logger.info(f"Loaded {len(embedded_chunks)} embedded chunks")
 
+        # Deduplicate by chunk_id (keep last occurrence)
+        seen = {}
+        for chunk in embedded_chunks:
+            seen[chunk['chunk_id']] = chunk
+        if len(seen) < len(embedded_chunks):
+            logger.warning(f"Removed {len(embedded_chunks) - len(seen)} duplicate chunk IDs")
+        embedded_chunks = list(seen.values())
+
         # Create collection
         collection = self.create_collection(reset=reset)
 

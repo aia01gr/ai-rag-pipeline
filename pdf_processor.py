@@ -4,11 +4,14 @@ Handles 1,000+ PDFs with 500K+ pages efficiently
 """
 
 import os
+import csv
 import json
+import time
 import hashlib
 from pathlib import Path
 from typing import List, Dict, Optional, Generator
 from dataclasses import dataclass, asdict
+from datetime import datetime
 import logging
 from tqdm import tqdm
 import pdfplumber
@@ -75,28 +78,32 @@ class PDFProcessor:
         """
         pages_data = []
 
+        # Open file manually with bytes path to handle non-UTF-8 filenames on Linux
+        path_bytes = os.fsencode(pdf_path)
         try:
-            with pdfplumber.open(pdf_path) as pdf:
-                for page_num, page in enumerate(pdf.pages, start=1):
-                    text = page.extract_text()
-                    if text:
-                        pages_data.append({
-                            'page_num': page_num,
-                            'text': text.strip()
-                        })
+            with open(path_bytes, 'rb') as f:
+                with pdfplumber.open(f) as pdf:
+                    for page_num, page in enumerate(pdf.pages, start=1):
+                        text = page.extract_text()
+                        if text:
+                            pages_data.append({
+                                'page_num': page_num,
+                                'text': text.strip()
+                            })
 
         except Exception as e:
             logger.error(f"Error extracting text from {pdf_path}: {e}")
             # Fallback to pypdf if pdfplumber fails
             try:
-                reader = PdfReader(pdf_path)
-                for page_num, page in enumerate(reader.pages, start=1):
-                    text = page.extract_text()
-                    if text:
-                        pages_data.append({
-                            'page_num': page_num,
-                            'text': text.strip()
-                        })
+                with open(path_bytes, 'rb') as fh:
+                    reader = PdfReader(fh)
+                    for page_num, page in enumerate(reader.pages, start=1):
+                        text = page.extract_text()
+                        if text:
+                            pages_data.append({
+                                'page_num': page_num,
+                                'text': text.strip()
+                            })
             except Exception as fallback_error:
                 logger.error(f"Fallback also failed for {pdf_path}: {fallback_error}")
 
@@ -112,16 +119,17 @@ class PDFProcessor:
 
         if self.preserve_metadata:
             try:
-                reader = PdfReader(pdf_path)
-                pdf_meta = reader.metadata
-                if pdf_meta:
-                    metadata.update({
-                        'title': pdf_meta.title or '',
-                        'author': pdf_meta.author or '',
-                        'subject': pdf_meta.subject or '',
-                        'creator': pdf_meta.creator or '',
-                        'num_pages': len(reader.pages)
-                    })
+                with open(os.fsencode(pdf_path), 'rb') as fh:
+                    reader = PdfReader(fh)
+                    pdf_meta = reader.metadata
+                    if pdf_meta:
+                        metadata.update({
+                            'title': pdf_meta.title or '',
+                            'author': pdf_meta.author or '',
+                            'subject': pdf_meta.subject or '',
+                            'creator': pdf_meta.creator or '',
+                            'num_pages': len(reader.pages)
+                        })
             except Exception as e:
                 logger.warning(f"Could not extract metadata from {pdf_path}: {e}")
 
@@ -184,7 +192,7 @@ class PDFProcessor:
     def _generate_chunk_id(self, filename: str, chunk_index: int) -> str:
         """Generate unique chunk ID"""
         base = f"{filename}_{chunk_index}"
-        return hashlib.md5(base.encode()).hexdigest()[:16]
+        return hashlib.md5(base.encode('utf-8', errors='replace')).hexdigest()[:16]
 
     def process_single_pdf(self, pdf_path: str) -> List[DocumentChunk]:
         """
@@ -218,16 +226,40 @@ class PDFProcessor:
         resume: bool = True
     ) -> None:
         """
-        Process all PDFs in a directory
+        Process all PDFs in a directory and subdirectories.
 
         Args:
-            input_dir: Directory containing PDFs
+            input_dir: Directory containing PDFs (recursive scan)
             output_file: JSON file to save chunks
             batch_size: Save progress every N files
             resume: Resume from last checkpoint if True
         """
+        output_dir = os.path.dirname(os.path.abspath(output_file))
+        os.makedirs(output_dir, exist_ok=True)
+
+        todo_csv  = os.path.join(output_dir, 'todo.csv')
+        skip_csv  = os.path.join(output_dir, 'skip.csv')
+        done_csv  = os.path.join(output_dir, 'done.csv')
+        error_csv = os.path.join(output_dir, 'error.csv')
+
+        TODO_HEADERS  = ['date', 'full_path', 'filename']
+        SKIP_HEADERS  = ['date', 'full_path', 'filename']
+        DONE_HEADERS  = ['processed_date', 'full_path', 'filename', 'file_modified_date', 'file_size_bytes', 'processing_sec']
+        ERROR_HEADERS = ['attempt_date', 'full_path', 'filename', 'file_modified_date', 'file_size_bytes', 'error_msg']
+
+        # Load todo.csv full paths into a set once for efficient lookup
+        todo_paths: set = set()
+        if os.path.exists(todo_csv):
+            with open(todo_csv, newline='', encoding='utf-8') as f:
+                reader = csv.reader(f, delimiter=';')
+                next(reader, None)  # skip header
+                for row in reader:
+                    if len(row) >= 2:
+                        todo_paths.add(row[1].strip())
+
+        # rglob handles subdirectories recursively
         pdf_files = list(Path(input_dir).rglob('*.pdf'))
-        logger.info(f"Found {len(pdf_files)} PDF files")
+        logger.info(f"Found {len(pdf_files)} PDF files (including subdirectories)")
 
         # Track progress
         processed_files = set()
@@ -241,29 +273,76 @@ class PDFProcessor:
                 processed_files = set(checkpoint['processed_files'])
                 logger.info(f"Resuming: {len(processed_files)} files already processed")
 
-        # Process PDFs with progress bar
-        for idx, pdf_path in enumerate(tqdm(pdf_files, desc="Processing PDFs")):
-            pdf_path_str = str(pdf_path)
+        now_str = lambda: datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        for idx, pdf_path in enumerate(tqdm(pdf_files, desc="Processing PDFs")):
+            pdf_path_str = str(pdf_path.resolve())
+            pdf_name     = pdf_path.name
+
+            # Skip already processed in this session (checkpoint)
             if pdf_path_str in processed_files:
                 continue
 
+            # Check todo.csv — if already queued/processed, log to skip.csv and skip
+            if pdf_path_str in todo_paths:
+                self._csv_append(skip_csv, [now_str(), pdf_path_str, pdf_name], SKIP_HEADERS)
+                logger.info(f"Skipped (already in todo): {pdf_path_str}")
+                continue
+
+            # Passed check — register in todo.csv before processing
+            self._csv_append(todo_csv, [now_str(), pdf_path_str, pdf_name], TODO_HEADERS)
+            todo_paths.add(pdf_path_str)
+
+            # Collect file stats before processing
+            try:
+                stat = os.stat(pdf_path_str)
+                file_size  = stat.st_size
+                file_mtime = datetime.fromtimestamp(stat.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+            except Exception:
+                file_size, file_mtime = 0, ''
+
+            start_time = time.time()
             try:
                 chunks = self.process_single_pdf(pdf_path_str)
+                elapsed = round(time.time() - start_time, 2)
+
+                if not chunks:
+                    self._csv_append(
+                        error_csv,
+                        [now_str(), pdf_path_str, pdf_name, file_mtime, file_size, "No text extracted (empty or unreadable PDF)"],
+                        ERROR_HEADERS
+                    )
+                    logger.warning(f"No chunks extracted, logged to error: {pdf_path_str}")
+                    continue
+
                 all_chunks.extend(chunks)
                 processed_files.add(pdf_path_str)
 
+                # Log to done.csv
+                self._csv_append(
+                    done_csv,
+                    [now_str(), pdf_path_str, pdf_name, file_mtime, file_size, elapsed],
+                    DONE_HEADERS
+                )
+
                 # Save checkpoint every batch_size files
                 if (idx + 1) % batch_size == 0:
-                    self._save_checkpoint(
-                        output_file,
-                        checkpoint_file,
-                        all_chunks,
-                        processed_files
-                    )
+                    self._save_checkpoint(output_file, checkpoint_file, all_chunks, processed_files)
+
+                # 5 sec pause after successful processing before next PDF
+                time.sleep(5)
 
             except Exception as e:
-                logger.error(f"Failed to process {pdf_path}: {e}")
+                elapsed = round(time.time() - start_time, 2)
+                error_msg = str(e)[:200]
+
+                # Log to error.csv
+                self._csv_append(
+                    error_csv,
+                    [now_str(), pdf_path_str, pdf_name, file_mtime, file_size, error_msg],
+                    ERROR_HEADERS
+                )
+                logger.error(f"Failed to process {pdf_path_str}: {e}")
                 continue
 
         # Final save
@@ -296,13 +375,25 @@ class PDFProcessor:
 
     def _save_chunks(self, output_file: str, chunks: List[DocumentChunk]):
         """Save chunks to JSON file"""
-        with open(output_file, 'w', encoding='utf-8') as f:
+        with open(output_file, 'w', encoding='utf-8', errors='replace') as f:
             json.dump(
                 [chunk.to_dict() for chunk in chunks],
                 f,
                 indent=2,
                 ensure_ascii=False
             )
+
+    def _csv_append(self, filepath: str, row: list, headers: list) -> None:
+        """Append one row to a semicolon-delimited CSV, creating it with headers if needed."""
+        file_exists = os.path.exists(filepath)
+        try:
+            with open(filepath, 'a', newline='', encoding='utf-8', errors='replace') as f:
+                writer = csv.writer(f, delimiter=';')
+                if not file_exists:
+                    writer.writerow(headers)
+                writer.writerow(row)
+        except Exception as e:
+            logger.warning(f"Could not write to {filepath}: {e}")
 
 
 def main():

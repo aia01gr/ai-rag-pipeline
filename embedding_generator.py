@@ -245,6 +245,7 @@ class EmbeddingGenerator:
         # Process in batches
         batch_texts = []
         batch_chunks = []
+        batch_counter = [0]  # mutable counter passed to _process_batch
 
         for chunk in tqdm(unprocessed_chunks, desc="Generating embeddings"):
             batch_texts.append(chunk['text'])
@@ -258,7 +259,8 @@ class EmbeddingGenerator:
                     embedded_chunks,
                     processed_ids,
                     output_file,
-                    checkpoint_file
+                    checkpoint_file,
+                    batch_counter
                 )
                 batch_texts = []
                 batch_chunks = []
@@ -271,7 +273,8 @@ class EmbeddingGenerator:
                 embedded_chunks,
                 processed_ids,
                 output_file,
-                checkpoint_file
+                checkpoint_file,
+                batch_counter
             )
 
         # Final save
@@ -289,11 +292,25 @@ class EmbeddingGenerator:
         embedded_chunks: List[Dict],
         processed_ids: set,
         output_file: str,
-        checkpoint_file: str
+        checkpoint_file: str,
+        batch_counter: list  # [int] mutable counter
     ):
-        """Process a batch of chunks"""
-        # Generate embeddings
-        embeddings = self.embed_texts(batch_texts)
+        """Process a batch of chunks with retry on network errors"""
+        import requests as _req
+
+        # Retry loop for network/connection errors
+        for attempt in range(5):
+            try:
+                embeddings = self.embed_texts(batch_texts)
+                break
+            except (_req.exceptions.ConnectionError,
+                    _req.exceptions.Timeout,
+                    _req.exceptions.ChunkedEncodingError) as e:
+                wait = 2 ** attempt
+                logger.warning(f"Network error (attempt {attempt+1}/5), retrying in {wait}s: {e}")
+                time.sleep(wait)
+        else:
+            raise Exception("Network error after 5 retries")
 
         # Create embedded chunk objects
         for chunk, embedding in zip(batch_chunks, embeddings):
@@ -308,9 +325,14 @@ class EmbeddingGenerator:
             embedded_chunks.append(embedded_chunk.to_dict())
             processed_ids.add(chunk['chunk_id'])
 
-        # Save checkpoint every batch
+        # Save checkpoint every batch (fast — only IDs)
         self._save_checkpoint(checkpoint_file, processed_ids)
-        self._save_embeddings(output_file, embedded_chunks)
+
+        # Save full embeddings file every 100 batches (slow — large file)
+        batch_counter[0] += 1
+        if batch_counter[0] % 100 == 0:
+            self._save_embeddings(output_file, embedded_chunks)
+            logger.info(f"Saved embeddings at batch {batch_counter[0]} ({len(embedded_chunks):,} chunks)")
 
     def _save_checkpoint(self, checkpoint_file: str, processed_ids: set):
         """Save checkpoint"""
@@ -397,7 +419,7 @@ def main():
     generator = EmbeddingGenerator(
         provider='voyage',
         model_name='voyage-4-large',
-        batch_size=32
+        batch_size=16
     )
 
     # Process chunks file
