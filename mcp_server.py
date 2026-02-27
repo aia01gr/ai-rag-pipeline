@@ -19,7 +19,7 @@ from mcp.server.fastmcp import FastMCP  # noqa: E402
 # Re-apply after FastMCP import resets logging
 logging.getLogger().setLevel(logging.WARNING)
 
-mcp = FastMCP("rag-pipeline")
+mcp = FastMCP("rag-pipeline", host="0.0.0.0", port=8000)
 
 # --- All heavy imports and init happen only on first tool call ---
 _embedder = None
@@ -103,4 +103,7 @@ def list_sources() -> str:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    print("Initializing embedder and ChromaDB...", flush=True)
+    _get_resources()
+    print("Ready. Starting MCP server on http://0.0.0.0:8000/sse", flush=True)
+    mcp.run(transport="sse")
