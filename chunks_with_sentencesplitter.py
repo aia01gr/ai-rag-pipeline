@@ -8,6 +8,7 @@ import csv
 import json
 import time
 import hashlib
+import psutil
 from pathlib import Path
 from typing import List, Dict, Optional, Generator
 from dataclasses import dataclass, asdict
@@ -282,6 +283,11 @@ class PDFProcessor:
             # Skip already processed in this session (checkpoint)
             if pdf_path_str in processed_files:
                 continue
+
+            # Throttle: wait until CPU drops below 90%
+            while psutil.cpu_percent(interval=1) > 90:
+                logger.debug("CPU >90%, waiting...")
+                time.sleep(2)
 
             # Check todo.csv — if already queued/processed, log to skip.csv and skip
             if pdf_path_str in todo_paths:

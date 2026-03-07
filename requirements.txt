@@ -4,6 +4,11 @@ pypdf>=6.0.0
 pdf2image>=1.17.0
 pytesseract>=0.3.13
 
+# ── PDF Processing (Docling — structure-aware, table detection) ─────────────────
+docling>=2.76.0
+transformers>=4.57.0
+psutil>=7.0.0
+
 # ── Text Splitting ──────────────────────────────────────────────────────────────
 llama-index-core>=0.14.0
 

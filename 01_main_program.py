@@ -64,9 +64,50 @@ def setup_directories():
     print("\n✓ Directories ready!")
 
 
-def process_pdfs():
-    """Process PDFs and create chunks"""
-    print_step(3, "Processing PDFs")
+def process_pdfs_docling():
+    """Process PDFs with Docling (structure-aware, table detection)"""
+    print_step(3, "Processing PDFs with Docling")
+
+    from chunks_with_Docling import PDFProcessor
+
+    pdf_dir = input("Enter path to your PDF directory [./pdfs]: ").strip() or './pdfs'
+
+    if not os.path.exists(pdf_dir):
+        print(f"⚠️  Directory {pdf_dir} not found. Skipping PDF processing.")
+        return False
+
+    pdf_files = list(Path(pdf_dir).rglob('*.pdf'))
+    if not pdf_files:
+        print(f"⚠️  No PDF files found in {pdf_dir}. Skipping.")
+        return False
+
+    print(f"Found {len(pdf_files)} PDF files")
+
+    processor = PDFProcessor(
+        chunk_size=1000,
+        chunk_overlap=200,
+        min_chunk_size=100,
+        ocr=False,
+        table_structure=True,
+    )
+
+    print("\nProcessing PDFs with Docling...")
+    processor.process_directory(
+        input_dir=pdf_dir,
+        output_file='./output/chunks.json',
+        batch_size=100,
+        resume=True,
+        num_workers=4,
+        cpu_limit=80.0,
+    )
+
+    print("\n✓ PDF processing complete!")
+    return True
+
+
+def process_pdfs_sentencesplitter():
+    """Process PDFs with SentenceSplitter (fast, lightweight)"""
+    print_step(3, "Processing PDFs with Sentence Splitter")
 
     from chunks_with_sentencesplitter import PDFProcessor
 
@@ -143,7 +184,7 @@ def setup_vector_db():
     num_loaded = db.load_embeddings(
         embedded_chunks_file='./output/embedded_chunks.json',
         batch_size=1000,
-        reset=True
+        reset=False
     )
 
     stats = db.get_collection_stats()
@@ -251,28 +292,39 @@ def main():
     print("\n" + "="*70)
     print("What would you like to do?")
     print("="*70)
-    print("1. Complete setup (process PDFs → embeddings → vector DB → test)")
-    print("2. Only process PDFs")
+    print("0. Complete setup (process PDFs with Docling → embeddings → vector DB → test)")
+    print("1. Only process PDFs with Docling")
+    print("2. Only process PDFs with Sentence Splitter")
     print("3. Only generate embeddings (requires chunks.json)")
     print("4. Only setup vector DB (requires embedded_chunks.json)")
     print("5. Only test pipeline (requires setup to be complete)")
+    print("6. Process PDFs with Docling AND generate embeddings")
+    print("9. Exit")
 
-    choice = input("\nSelect option [1]: ").strip() or '1'
+    choice = input("\nSelect option [0]: ").strip() or '0'
 
-    if choice == '1':
-        process_pdfs()
+    if choice == '0':
+        process_pdfs_docling()
         generate_embeddings()
         setup_vector_db()
         test_rag_pipeline()
         print_next_steps()
+    elif choice == '1':
+        process_pdfs_docling()
     elif choice == '2':
-        process_pdfs()
+        process_pdfs_sentencesplitter()
     elif choice == '3':
         generate_embeddings()
     elif choice == '4':
         setup_vector_db()
     elif choice == '5':
         test_rag_pipeline()
+    elif choice == '6':
+        process_pdfs_docling()
+        generate_embeddings()
+    elif choice == '9':
+        print("Exiting.")
+        sys.exit(0)
     else:
         print("Invalid option")
 

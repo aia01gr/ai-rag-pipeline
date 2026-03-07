@@ -21,26 +21,37 @@ API keys go in `/ai/.env` (not committed). Required keys depend on provider:
 - `OPENAI_API_KEY` — if using OpenAI embeddings
 - `ANTHROPIC_API_KEY` — not currently used
 
+## New Project / Reset
+
+```bash
+# Full reset — διαγράφει ΟΛΑ τα δεδομένα και ξεκινά καθαρά
+python /ai/reset.py
+
+# Μετά: βάλε τα νέα PDFs στο /ai/pdfs/ και τρέξε το pipeline
+```
+
+Δες `/ai/docs/new_project.md` για αναλυτικές οδηγίες.
+
 ## Pipeline Execution (in order)
 
 ```bash
-# 1. Verify setup / interactive wizard
-python /ai/01_main_program.py
+# 0. Βάλε τα PDFs στο /ai/pdfs/
 
-# 2. Extract text from PDFs → output/
+# 1. Extract text from PDFs → output/
+source /ai/venv/bin/activate
 python /ai/chunks_with_sentencesplitter.py
 
-# 3. Generate embeddings → output/
+# 2. Generate embeddings → output/
 python /ai/embeddings_with_voyage.py
 
-# 4. Load embeddings into ChromaDB
+# 3. Load embeddings into ChromaDB
 python /ai/vector_database.py
 
-# 5. Test RAG queries (uses Ollama local LLM)
+# 4. (Προαιρετικό) Test RAG queries με Ollama
 python /ai/rag_pipeline_local_with_ollama.py
 
-# 6. Start MCP server (port 8000, HTTP/SSE)
-python /ai/mcp_server.py
+# 5. Start/restart MCP server
+sudo systemctl restart mcp-rag
 ```
 
 ## MCP Server
@@ -57,7 +68,7 @@ sudo systemctl status mcp-rag
 sudo journalctl -u mcp-rag -f
 ```
 
-Public endpoint (via nginx HTTPS proxy): `https://vmi3105091.contaboserver.net/sse`
+Direct endpoint (UFW whitelisted IPs only): `http://156.67.28.160:8000/mcp`
 
 ## Architecture
 
@@ -114,4 +125,4 @@ python /ai/remove_pdf_chunks.py "αρχείο.pdf"
 - Default local LLM (rag_pipeline_local_with_ollama.py): Ollama `qwen2.5:32b` at `http://localhost:11434`
 - ChromaDB path: `/ai/chroma_db/`
 - Processed output path: `/ai/output/`
-- Input PDFs: `/ai/pdfs/`
+- Input PDFs: `/ai/pdfs/` (δημιουργείται αυτόματα από reset.py ή χειροκίνητα)
